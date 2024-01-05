@@ -7,6 +7,8 @@ class ProgrammingLanguage < ApplicationRecord
   validates :type, presence: true
   validates :designed_by, presence: true
 
+  # Solution based on regex expressions and generating sql query on fly
+  # TODO: check if SQL injection attack possible
   def self.search(raw_query)
     query = prepare_query(raw_query)
     find_by_sql(
