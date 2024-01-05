@@ -19,7 +19,11 @@ Then db init:
 ```
 bin/rails runner scripts/adhoc/add_programming_languages.rb
 ```
-Then start the server:
+Then compile assets:
+```
+bin/rails tailwindcss:build
+```
+Finally, start the server and check localhost:3000:
 ```
 bin/rails server
 ```
