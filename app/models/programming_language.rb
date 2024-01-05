@@ -33,8 +33,8 @@ class ProgrammingLanguage < ApplicationRecord
   # rubocop:disable Metrics/AbcSize
   def self.prepare_query(raw_query)
     query = {}
-    query[:negative] = raw_query.scan(/-\s?(.*.)/).flatten.map { |word| "\\m#{word}" }.join('|')
-    positive = raw_query.gsub(/-\s?.*./, '').strip
+    query[:negative] = raw_query.scan(/-\s?(\w+)/).flatten.map { |word| "\\m#{word}" }.join('|')
+    positive = raw_query.gsub(/-\s?\w+/, '').strip
     exact = positive.scan(/"([^"]*)"/).flatten.map { |word| "\\m#{word}\\M" }
     rest = positive.gsub(/".*?"/, '').split(' ').map { |word| "\\m#{word}" }
     mapped = rest + exact
