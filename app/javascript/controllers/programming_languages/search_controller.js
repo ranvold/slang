@@ -5,7 +5,7 @@ export default class extends Controller {
   static targets = ['query']
 
   apply() {
-    const query = this.queryTarget.value
+    const query = encodeURIComponent(this.queryTarget.value)
 
     const params = `query=${query}`
 

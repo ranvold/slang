@@ -31,13 +31,15 @@ class ProgrammingLanguage < ApplicationRecord
 
   def self.prepare_query(raw_query)
     query = {}
-    query[:negative] = raw_query.scan(/-\s?(\w+)/).flatten.map { |word| ActiveRecord::Base.connection.quote("\\m#{word}") }.join('|')
-    positive = raw_query.gsub(/-\s?\w+/, '').strip
-    exact = positive.scan(/"([^"]*)"/).flatten.map { |word| ActiveRecord::Base.connection.quote("\\m#{word}\\M") }
-    rest = positive.gsub(/".*?"/, '').split(' ').map { |word| ActiveRecord::Base.connection.quote("\\m#{word}") }
+    raw_query = raw_query.gsub(/\+/, '\\\+')
+    negative = raw_query.scan(/\B-\s?(\S+)/).flatten.map { |word| "\\m#{word}" }.join('|')
+    positive = raw_query.gsub(/\B-\s?\S+/, '').strip
+    exact = positive.scan(/"([^"]*)"/).flatten.map { |word| "\\m#{word}\\M" }
+    rest = positive.gsub(/".*?"/, '').split(' ').map { |word| "\\m#{word}" }
     mapped = rest + exact
-    query[:in_any_order] = mapped
-    query[:in_different_fields] = mapped.join('|')
+    query[:negative] = ActiveRecord::Base.connection.quote(negative) if negative.present?
+    query[:in_any_order] = mapped.map { |word| ActiveRecord::Base.connection.quote(word) }
+    query[:in_different_fields] = ActiveRecord::Base.connection.quote(mapped.join('|'))
     query
   end
 
