@@ -4,7 +4,9 @@ class ProgrammingLanguagesController < ApplicationController
   def index; end
 
   def search
-    @programming_languages = params[:query].strip.present? ? ProgrammingLanguage.search(params[:query]) : []
+    @programming_languages = ProgrammingLanguage.search(params[:query])
+  rescue StandardError
+    @programming_languages = []
 
     respond_to do |format|
       format.turbo_stream
