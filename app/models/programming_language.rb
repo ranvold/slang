@@ -30,7 +30,6 @@ class ProgrammingLanguage < ApplicationRecord
     )
   end
 
-  # rubocop:disable Metrics/AbcSize
   def self.prepare_query(raw_query)
     query = {}
     query[:negative] = raw_query.scan(/-\s?(\w+)/).flatten.map { |word| "\\m#{word}" }.join('|')
@@ -42,7 +41,6 @@ class ProgrammingLanguage < ApplicationRecord
     query[:in_different_fields] = mapped.join('|')
     query
   end
-  # rubocop:enable Metrics/AbcSize
 
   def self.negative_sql_condition(query)
     <<-SQL
