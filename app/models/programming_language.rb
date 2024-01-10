@@ -8,7 +8,6 @@ class ProgrammingLanguage < ApplicationRecord
   validates :designed_by, presence: true
 
   # Solution based on regex expressions and generating sql query on fly
-  # TODO: check if SQL injection attack possible
   def self.search(raw_query)
     query = prepare_query(raw_query)
     find_by_sql(
@@ -22,8 +21,8 @@ class ProgrammingLanguage < ApplicationRecord
         FROM programming_languages
           WHERE
             ((#{any_order_sql_condition(query[:in_any_order])}) OR
-            (type ~* '#{query[:in_different_fields]}' AND
-            designed_by ~* '#{query[:in_different_fields]}'))
+            (type ~* #{query[:in_different_fields]} AND
+            designed_by ~* #{query[:in_different_fields]}))
             #{negative_sql_condition(query) if query[:negative].present?}
         ORDER BY relevance DESC;
       SQL
@@ -32,10 +31,10 @@ class ProgrammingLanguage < ApplicationRecord
 
   def self.prepare_query(raw_query)
     query = {}
-    query[:negative] = raw_query.scan(/-\s?(\w+)/).flatten.map { |word| "\\m#{word}" }.join('|')
+    query[:negative] = raw_query.scan(/-\s?(\w+)/).flatten.map { |word| ActiveRecord::Base.connection.quote("\\m#{word}") }.join('|')
     positive = raw_query.gsub(/-\s?\w+/, '').strip
-    exact = positive.scan(/"([^"]*)"/).flatten.map { |word| "\\m#{word}\\M" }
-    rest = positive.gsub(/".*?"/, '').split(' ').map { |word| "\\m#{word}" }
+    exact = positive.scan(/"([^"]*)"/).flatten.map { |word| ActiveRecord::Base.connection.quote("\\m#{word}\\M") }
+    rest = positive.gsub(/".*?"/, '').split(' ').map { |word| ActiveRecord::Base.connection.quote("\\m#{word}") }
     mapped = rest + exact
     query[:in_any_order] = mapped
     query[:in_different_fields] = mapped.join('|')
@@ -45,9 +44,9 @@ class ProgrammingLanguage < ApplicationRecord
   def self.negative_sql_condition(query)
     <<-SQL
             AND
-            name !~* '#{query[:negative]}' AND
-            type !~* '#{query[:negative]}' AND
-            designed_by !~* '#{query[:negative]}'
+            name !~* #{query[:negative]} AND
+            type !~* #{query[:negative]} AND
+            designed_by !~* #{query[:negative]}
     SQL
   end
 
@@ -63,7 +62,7 @@ class ProgrammingLanguage < ApplicationRecord
     sql = ''
     query.each do |word|
       sql << <<-SQL
-        name ~* '#{word}'
+        name ~* #{word}
       SQL
     end
     prepare_any_order_sql_condition(sql)
@@ -73,7 +72,7 @@ class ProgrammingLanguage < ApplicationRecord
     sql = ''
     query.each do |word|
       sql << <<-SQL
-        type ~* '#{word}'
+        type ~* #{word}
       SQL
     end
     prepare_any_order_sql_condition(sql)
@@ -83,7 +82,7 @@ class ProgrammingLanguage < ApplicationRecord
     sql = ''
     query.each do |word|
       sql << <<-SQL
-        designed_by ~* '#{word}'
+        designed_by ~* #{word}
       SQL
     end
     prepare_any_order_sql_condition(sql)
