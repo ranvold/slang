@@ -20,6 +20,8 @@ gem 'turbo-rails', '1.5.0'
 
 gem 'tailwindcss-rails', '2.1.0'
 
+gem 'trailblazer-rails', '2.4.3'
+
 group :development, :test do
   gem 'debug', '1.9.1'
 

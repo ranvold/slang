@@ -8,8 +8,7 @@ class ProgrammingLanguage < ApplicationRecord
   validates :designed_by, presence: true
 
   # Solution based on regex expressions and generating sql query on fly
-  def self.search(raw_query)
-    query = prepare_query(raw_query)
+  def self.search(query)
     find_by_sql(
       <<-SQL
         SELECT name, type, designed_by,
@@ -23,46 +22,32 @@ class ProgrammingLanguage < ApplicationRecord
             ((#{any_order_sql_condition(query[:in_any_order])}) OR
             (type ~* #{query[:in_different_fields]} AND
             designed_by ~* #{query[:in_different_fields]}))
-            #{negative_sql_condition(query) if query[:negative].present?}
+            #{negative_sql_condition(query[:negative]) if query[:negative].present?}
         ORDER BY relevance DESC;
       SQL
     )
   end
 
-  def self.prepare_query(raw_query)
-    query = {}
-    raw_query = raw_query.gsub(/\+/, '\\\+')
-    negative = raw_query.scan(/\B-\s?(\S+)/).flatten.map { |word| "\\m#{word}" }.join('|')
-    positive = raw_query.gsub(/\B-\s?\S+/, '').strip
-    exact = positive.scan(/"([^"]*)"/).flatten.map { |word| "\\m#{word}\\M" }
-    rest = positive.gsub(/".*?"/, '').split(' ').map { |word| "\\m#{word}" }
-    mapped = rest + exact
-    query[:negative] = ActiveRecord::Base.connection.quote(negative) if negative.present?
-    query[:in_any_order] = mapped.map { |word| ActiveRecord::Base.connection.quote(word) }
-    query[:in_different_fields] = ActiveRecord::Base.connection.quote(mapped.join('|'))
-    query
-  end
-
-  def self.negative_sql_condition(query)
+  def self.negative_sql_condition(negative)
     <<-SQL
             AND
-            name !~* #{query[:negative]} AND
-            type !~* #{query[:negative]} AND
-            designed_by !~* #{query[:negative]}
+            name !~* #{negative} AND
+            type !~* #{negative} AND
+            designed_by !~* #{negative}
     SQL
   end
 
-  def self.any_order_sql_condition(query)
+  def self.any_order_sql_condition(in_any_order)
     <<-SQL
-            #{name_any_order_sql_condition(query)} OR
-            #{type_any_order_sql_condition(query)} OR
-            #{designed_by_any_order_sql_condition(query)}
+            #{name_any_order_sql_condition(in_any_order)} OR
+            #{type_any_order_sql_condition(in_any_order)} OR
+            #{designed_by_any_order_sql_condition(in_any_order)}
     SQL
   end
 
-  def self.name_any_order_sql_condition(query)
+  def self.name_any_order_sql_condition(in_any_order)
     sql = ''
-    query.each do |word|
+    in_any_order.each do |word|
       sql << <<-SQL
         name ~* #{word}
       SQL
@@ -70,9 +55,9 @@ class ProgrammingLanguage < ApplicationRecord
     prepare_any_order_sql_condition(sql)
   end
 
-  def self.type_any_order_sql_condition(query)
+  def self.type_any_order_sql_condition(in_any_order)
     sql = ''
-    query.each do |word|
+    in_any_order.each do |word|
       sql << <<-SQL
         type ~* #{word}
       SQL
@@ -80,9 +65,9 @@ class ProgrammingLanguage < ApplicationRecord
     prepare_any_order_sql_condition(sql)
   end
 
-  def self.designed_by_any_order_sql_condition(query)
+  def self.designed_by_any_order_sql_condition(in_any_order)
     sql = ''
-    query.each do |word|
+    in_any_order.each do |word|
       sql << <<-SQL
         designed_by ~* #{word}
       SQL
